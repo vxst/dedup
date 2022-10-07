@@ -4,8 +4,12 @@
 #include <vector>
 #include <cstdint>
 
-const static size_t BLOCK_SIZE = 128 * 1024;
-const static size_t DICT_SIZE = 4096;
+// assume 4KB aligned, deduped data is 32 bytes + 8 bytes
+// there can be 128k of deduped items
+// dict size is 4KB * 128k = 512MB
+
+const static size_t BLOCK_SIZE = 4 * 1024;
+const static size_t DICT_SIZE = 128 * 1024;
 class builder
 {
 private:

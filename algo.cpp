@@ -181,8 +181,9 @@ void builder::reduce_hash_map(){
     for(auto &p : hash_count)
         hash_count_vec.push_back(make_pair(p.second, p.first));
     std::sort(hash_count_vec.begin(), hash_count_vec.end(), greater<pair<uint64_t, uint64_t>>());
-    for(int i = 4096; i < hash_count_vec.size(); i++)
+    for(int i = DICT_SIZE; i < hash_count_vec.size(); i++)
         hash_count.erase(hash_count_vec[i].second);
+    assert(hash_count.size() <= DICT_SIZE);
 }
 
 

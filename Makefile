@@ -15,10 +15,10 @@
 # limitations under the License.
 
 CXX=clang++
-CFLAGS="-std=c++14"
+CFLAGS=-O3 -std=c++14
 
-main: main.o algo.o
-	$(CXX) $(CFLAGS) -o main main.o algo.o
+dedup: main.o algo.o
+	$(CXX) $(CFLAGS) -o dedup main.o algo.o
 
 main.o: main.cpp
 	$(CXX) $(CFLAGS) -c main.cpp
@@ -27,10 +27,10 @@ algo.o: algo.cpp
 	$(CXX) $(CFLAGS) -c algo.cpp
 
 clean:
-	rm -rf *.o main A B C
+	rm -rf *.o dedup A B C
 
-test: clean main
+test: clean dedup
 	xzcat test_data.xz > A
-	./main -e A B
-	./main -d B C
+	./dedup -e A B
+	./dedup -d B C
 	sha1sum A C
