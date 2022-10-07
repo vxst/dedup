@@ -1,6 +1,7 @@
 #include "algo.h"
 #include <cstdio>
 #include <exception>
+#include <algorithm>
 
 using namespace std;
 
@@ -62,6 +63,7 @@ void builder::prescan_block(const uint8_t *data)
         hash_count[hash]++;
 }
 
+
 void builder::scan_block(const uint8_t *data)
 {
     const size_t &len = BLOCK_SIZE;
@@ -72,32 +74,32 @@ void builder::scan_block(const uint8_t *data)
 
 vector<uint8_t> builder::get_header() const
 {
-    vector<uint8_t> dict;
+    vector<uint8_t> buffer;
 
     // Filetype word
-    dict.push_back('D');
-    dict.push_back('E');
-    dict.push_back('D');
-    dict.push_back('U');
-    dict.push_back('P');
-    dict.push_back(0xb2);
-    dict.push_back(0xe1);
-    dict.push_back(0x7a);
+    buffer.push_back('D');
+    buffer.push_back('E');
+    buffer.push_back('D');
+    buffer.push_back('U');
+    buffer.push_back('P');
+    buffer.push_back(0xb2);
+    buffer.push_back(0xe1);
+    buffer.push_back(0x7a);
 
     // Record the magic number
     for (size_t i = 0; i < 4; i++)
         for (size_t j = 0; j < 8; j++)
-            dict.push_back(magic[i] >> (j * 8));
+            buffer.push_back(magic[i] >> (j * 8));
     
     // Record the dict map
     for (auto &p : data_map)
         // Hash can be recalculate from data, so we don't need to store it.
-        dict.insert(dict.end(), p.second.begin(), p.second.end());
+        buffer.insert(buffer.end(), p.second.begin(), p.second.end());
 
     for (size_t i = 0; i < 4; i++)
         for (size_t j = 0; j < 8; j++)
-            dict.push_back(magic[i] >> (j * 8));
-    return dict;
+            buffer.push_back(magic[i] >> (j * 8));
+    return buffer;
 }
 static bool check_magic(const uint8_t *data, const uint64_t *magic)
 {
@@ -174,3 +176,67 @@ pair<vector<uint8_t>*, const uint8_t*> builder::decode_data(const uint8_t* data)
     }
 }
 
+void builder::reduce_hash_map(){
+    vector<pair<uint64_t, uint64_t>> hash_count_vec;
+    for(auto &p : hash_count)
+        hash_count_vec.push_back(make_pair(p.second, p.first));
+    std::sort(hash_count_vec.begin(), hash_count_vec.end(), greater<pair<uint64_t, uint64_t>>());
+    for(int i = 4096; i < hash_count_vec.size(); i++)
+        hash_count.erase(hash_count_vec[i].second);
+}
+
+
+void encode(FILE* infile, FILE* outfile){
+    builder b;
+    uint8_t data[BLOCK_SIZE];
+    while(fread(data, 1, BLOCK_SIZE, infile) == BLOCK_SIZE){
+        b.prescan_block(data);
+    }
+    fseek(infile, 0, SEEK_SET);
+    b.reduce_hash_map();
+    while(fread(data, 1, BLOCK_SIZE, infile) == BLOCK_SIZE){
+        b.scan_block(data);
+    }
+    fseek(infile, 0, SEEK_SET);
+    auto header = b.get_header();
+    fwrite(header.data(), 1, header.size(), outfile);
+    int count = 0;
+    while(count = fread(data, 1, BLOCK_SIZE, infile) == BLOCK_SIZE){
+        auto deduped_data = b.get_deduped_data(data);
+        if(deduped_data == nullptr){
+            fwrite(data, 1, BLOCK_SIZE, outfile);
+        }else{
+            fwrite(deduped_data->data(), 1, deduped_data->size(), outfile);
+            delete deduped_data;
+        }
+    }
+    fwrite(data, 1, count, outfile);
+}
+void decode(FILE* infile, FILE* outfile){
+    uint8_t* header_data = new uint8_t[BLOCK_SIZE * DICT_SIZE + BLOCK_SIZE];
+    fread(header_data, 1, BLOCK_SIZE * DICT_SIZE + BLOCK_SIZE, infile);
+    builder b;
+    const uint8_t* pos_data = b.build_data_map(header_data);
+    size_t pos = pos_data - header_data;
+    delete[] header_data;
+    uint8_t data[BLOCK_SIZE];
+    fseek(infile, pos, SEEK_SET);
+    while(1){
+        long pos = ftell(infile);
+        long size = fread(data, 1, BLOCK_SIZE, infile);
+        if(size != BLOCK_SIZE){
+            fwrite(data, 1, size, outfile);
+            break;
+        }
+        auto decoded_data = b.decode_data(data);
+        if(decoded_data.first == nullptr){
+            fwrite(data, 1, BLOCK_SIZE, outfile);
+            pos += BLOCK_SIZE;
+        }else{
+            fwrite(decoded_data.first->data(), 1, decoded_data.first->size(), outfile);
+            delete decoded_data.first;
+            pos += 40;
+        }
+        fseek(infile, pos, SEEK_SET);
+    }
+}
