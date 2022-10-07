@@ -19,7 +19,7 @@
 int main(int argc, char **argv)
 {
     if (argc < 3){
-        printf("Usage: %s [-e|-d] <input file> <output file>", argv[0]);
+        printf("Usage: %s [-e|-d] <input file> <output file>\n", argv[0]);
         return 1;
     }
 
@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     }else if(strcmp(argv[1], "-d") == 0){
         is_encode = 0;
     }else{
-        printf("Usage: %s [-e|-d] <input file> <output file>", argv[0]);
+        printf("Usage: %s [-e|-d] <input file> <output file>\n", argv[0]);
         return 1;
     }
 

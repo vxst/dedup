@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2022 Chunqing Shan
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,14 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+CXX=clang++
+CFLAGS="-std=c++14"
+
 main: main.o algo.o
-	g++ main.o algo.o -o main
+	$(CXX) $(CFLAGS) -o main main.o algo.o
 
 main.o: main.cpp
-	g++ -c main.cpp
+	$(CXX) $(CFLAGS) -c main.cpp
 
 algo.o: algo.cpp
-	g++ -c algo.cpp
+	$(CXX) $(CFLAGS) -c algo.cpp
 
 clean:
 	rm -rf *.o main

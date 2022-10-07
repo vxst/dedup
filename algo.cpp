@@ -201,7 +201,7 @@ void encode(FILE* infile, FILE* outfile){
     auto header = b.get_header();
     fwrite(header.data(), 1, header.size(), outfile);
     int count = 0;
-    while(count = fread(data, 1, BLOCK_SIZE, infile) == BLOCK_SIZE){
+    while((count = fread(data, 1, BLOCK_SIZE, infile)) == BLOCK_SIZE){
         auto deduped_data = b.get_deduped_data(data);
         if(deduped_data == nullptr){
             fwrite(data, 1, BLOCK_SIZE, outfile);

@@ -16,11 +16,12 @@ public:
     builder();
     void prescan_block(const uint8_t *data);
     void scan_block(const uint8_t *data);
-    vector<uint8_t> get_header()const;
+    std::vector<uint8_t> get_header()const;
     const uint8_t* build_data_map(const uint8_t *data);
     void reduce_hash_map();
-    vector<uint8_t>* get_deduped_data(const uint8_t *data)const;
-    std::pair<vector<uint8_t>*, const uint8_t*> decode_data(const uint8_t *data)const;
+    std::vector<uint8_t>* get_deduped_data(const uint8_t *data)const;
+    std::pair<std::vector<uint8_t>*, const uint8_t*> 
+        decode_data(const uint8_t *data)const;
 };
 
 void encode(FILE* infile, FILE* outfile);
