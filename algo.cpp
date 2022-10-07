@@ -178,11 +178,14 @@ pair<vector<uint8_t>*, const uint8_t*> builder::decode_data(const uint8_t* data)
 
 void builder::reduce_hash_map(){
     vector<pair<uint64_t, uint64_t>> hash_count_vec;
+
     for(auto &p : hash_count)
         hash_count_vec.push_back(make_pair(p.second, p.first));
     std::sort(hash_count_vec.begin(), hash_count_vec.end(), greater<pair<uint64_t, uint64_t>>());
+
     for(int i = DICT_SIZE; i < hash_count_vec.size(); i++)
         hash_count.erase(hash_count_vec[i].second);
+
     assert(hash_count.size() <= DICT_SIZE);
 }
 
