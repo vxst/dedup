@@ -50,7 +50,9 @@ static uint64_t hash_data(const uint8_t *data)
 builder::builder()
 {
     FILE *random_file = fopen("/dev/urandom", "rb");
-    fread(magic, sizeof(uint64_t), 4, random_file);
+    // Magic first byte is not zero for faster decode
+    for(*magic=0; (*magic & 0xff)==0;)
+        fread(magic, sizeof(uint64_t), 4, random_file);
     fclose(random_file);
 }
 
@@ -105,6 +107,9 @@ vector<uint8_t> builder::get_header() const
 }
 static bool check_magic(const uint8_t *data, const uint64_t *magic)
 {
+    uint8_t first_byte = magic[0] & 0xff;
+    if(*data != first_byte)
+        return false;
     for (size_t i = 0; i < 4; i++)
     {
         uint64_t m = 0;
@@ -164,14 +169,13 @@ vector<uint8_t>* builder::get_deduped_data(const uint8_t *data) const
     }
 }
 
-pair<vector<uint8_t>*, const uint8_t*> builder::decode_data(const uint8_t* data)const{
+pair<const uint8_t*, const uint8_t*> builder::decode_data(const uint8_t* data)const{
     if(check_magic(data, magic)){
         uint64_t hash = 0;
         data += 32;
         for(size_t i = 0; i < 8; i++)
             hash |= (uint64_t)data[i] << (i * 8);
-        vector<uint8_t>* result = new vector<uint8_t>(data_map.at(hash));
-        return make_pair(result, data + 8);
+        return make_pair(data_map.at(hash).data(), data + 8);
     }else{
         return make_pair(nullptr, data + BLOCK_SIZE);
     }
@@ -188,6 +192,8 @@ void builder::reduce_hash_map(size_t threshold){
         hash_count.erase(hash_count_vec[i].second);
 
     assert(hash_count.size() <= threshold);
+
+    hash_count.reserve(threshold*3);
 }
 
 
@@ -196,14 +202,11 @@ void encode(FILE* infile, FILE* outfile){
     uint8_t data[BLOCK_SIZE];
     int32_t in_count=0;
 
-    setvbuf(infile, NULL, _IOFBF, 1024 * 1024);
-    setvbuf(outfile, NULL, _IOFBF, 1024 * 1024);
-
     while(fread(data, 1, BLOCK_SIZE, infile) == BLOCK_SIZE){
         b.prescan_block(data);
         in_count++;
-        if(in_count >= DICT_SIZE * 96){
-            b.reduce_hash_map(DICT_SIZE * 32);
+        if(in_count >= DICT_SIZE * 512){
+            b.reduce_hash_map(DICT_SIZE * 192);
             in_count = 0;
         }
     }
@@ -222,15 +225,12 @@ void encode(FILE* infile, FILE* outfile){
             fwrite(data, 1, BLOCK_SIZE, outfile);
         }else{
             fwrite(deduped_data->data(), 1, deduped_data->size(), outfile);
-            delete deduped_data;
         }
     }
     fwrite(data, 1, count, outfile);
 }
 void decode(FILE* infile, FILE* outfile){
     uint8_t* header_data = new uint8_t[BLOCK_SIZE * DICT_SIZE + BLOCK_SIZE];
-    setvbuf(infile, NULL, _IOFBF, 1024 * 1024);
-    setvbuf(outfile, NULL, _IOFBF, 1024 * 1024);
     fread(header_data, 1, BLOCK_SIZE * DICT_SIZE + BLOCK_SIZE, infile);
     builder b;
     const uint8_t* pos_data = b.build_data_map(header_data);
@@ -239,18 +239,18 @@ void decode(FILE* infile, FILE* outfile){
     uint8_t data[BLOCK_SIZE];
     fseek(infile, pos, SEEK_SET);
     while(1){
-        memset(data, 0, BLOCK_SIZE);
-        long pos = ftell(infile);
+        data[0]=0;
         long size = fread(data, 1, BLOCK_SIZE, infile);
         bool is_magic = check_magic(data, b.magic);
 
         if(is_magic){
-            auto decoded_data = b.decode_data(data);
-            fwrite(decoded_data.first->data(), 1, decoded_data.first->size(), outfile);
-            delete decoded_data.first;
+            auto decoded_data = b.decode_data(data).first;
+            fwrite(decoded_data, 1, BLOCK_SIZE, outfile);
             fseek(infile, pos + 40, SEEK_SET);
+            pos += 40;
         }else{
             fwrite(data, 1, size, outfile);
+            pos += size;
         }
         if(size != BLOCK_SIZE && !is_magic)
             break;
