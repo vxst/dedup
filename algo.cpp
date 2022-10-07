@@ -3,6 +3,12 @@
 #include <exception>
 #include <algorithm>
 
+#ifdef BIGRAM
+const static int Ratio = 192;
+#else
+const static int Ratio = 16;
+#endif
+
 using namespace std;
 
 static inline uint32_t murmur_32_scramble(uint32_t k)
@@ -205,8 +211,8 @@ void encode(FILE* infile, FILE* outfile){
     while(fread(data, 1, BLOCK_SIZE, infile) == BLOCK_SIZE){
         b.prescan_block(data);
         in_count++;
-        if(in_count >= DICT_SIZE * 512){
-            b.reduce_hash_map(DICT_SIZE * 192);
+        if(in_count >= DICT_SIZE * Ratio * 3){
+            b.reduce_hash_map(DICT_SIZE * Ratio);
             in_count = 0;
         }
     }
