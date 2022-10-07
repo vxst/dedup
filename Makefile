@@ -15,7 +15,7 @@
 # limitations under the License.
 
 CXX=clang++
-CFLAGS=-O3 -std=c++14
+CFLAGS=-O3 -std=c++14 -Wall
 
 dedup: main.o algo.o
 	$(CXX) $(CFLAGS) -o dedup main.o algo.o

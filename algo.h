@@ -13,7 +13,7 @@ const static size_t DICT_SIZE = 256 * 1024;
 class builder
 {
 private:
-    std::unordered_map<uint64_t, uint64_t> hash_count;
+    std::unordered_map<uint64_t, uint32_t> hash_count;
     std::unordered_map<uint64_t, std::vector<uint8_t>> data_map;
 public:
     uint64_t magic[4]; // 256 bit magic number for hash leading value

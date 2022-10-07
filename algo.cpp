@@ -144,7 +144,6 @@ const uint8_t* builder::build_data_map(const uint8_t *data){
 
 vector<uint8_t>* builder::get_deduped_data(const uint8_t *data) const
 {
-    const size_t &len = BLOCK_SIZE;
     uint64_t hash = hash_data(data);
     if (data_map.find(hash) == data_map.end())
         return nullptr;
