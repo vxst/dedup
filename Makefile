@@ -27,4 +27,10 @@ algo.o: algo.cpp
 	$(CXX) $(CFLAGS) -c algo.cpp
 
 clean:
-	rm -rf *.o main
+	rm -rf *.o main A B C
+
+test: clean main
+	xzcat test_data.xz > A
+	./main -e A B
+	./main -d B C
+	sha1sum A C

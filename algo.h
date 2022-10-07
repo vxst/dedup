@@ -9,10 +9,10 @@ const static size_t DICT_SIZE = 4096;
 class builder
 {
 private:
-    uint64_t magic[4]; // 256 bit magic number for hash leading value
     std::unordered_map<uint64_t, uint64_t> hash_count;
     std::unordered_map<uint64_t, std::vector<uint8_t>> data_map;
 public:
+    uint64_t magic[4]; // 256 bit magic number for hash leading value
     builder();
     void prescan_block(const uint8_t *data);
     void scan_block(const uint8_t *data);

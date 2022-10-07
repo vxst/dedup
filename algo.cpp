@@ -165,7 +165,7 @@ vector<uint8_t>* builder::get_deduped_data(const uint8_t *data) const
 
 pair<vector<uint8_t>*, const uint8_t*> builder::decode_data(const uint8_t* data)const{
     if(check_magic(data, magic)){
-        uint64_t hash;
+        uint64_t hash = 0;
         data += 32;
         for(size_t i = 0; i < 8; i++)
             hash |= (uint64_t)data[i] << (i * 8);
@@ -222,21 +222,20 @@ void decode(FILE* infile, FILE* outfile){
     uint8_t data[BLOCK_SIZE];
     fseek(infile, pos, SEEK_SET);
     while(1){
+        memset(data, 0, BLOCK_SIZE);
         long pos = ftell(infile);
         long size = fread(data, 1, BLOCK_SIZE, infile);
-        if(size != BLOCK_SIZE){
-            fwrite(data, 1, size, outfile);
-            break;
-        }
-        auto decoded_data = b.decode_data(data);
-        if(decoded_data.first == nullptr){
-            fwrite(data, 1, BLOCK_SIZE, outfile);
-            pos += BLOCK_SIZE;
-        }else{
+        bool is_magic = check_magic(data, b.magic);
+
+        if(is_magic){
+            auto decoded_data = b.decode_data(data);
             fwrite(decoded_data.first->data(), 1, decoded_data.first->size(), outfile);
             delete decoded_data.first;
-            pos += 40;
+            fseek(infile, pos + 40, SEEK_SET);
+        }else{
+            fwrite(data, 1, size, outfile);
         }
-        fseek(infile, pos, SEEK_SET);
+        if(size != BLOCK_SIZE && !is_magic)
+            break;
     }
 }
