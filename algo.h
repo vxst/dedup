@@ -22,7 +22,7 @@ public:
     void scan_block(const uint8_t *data);
     std::vector<uint8_t> get_header()const;
     const uint8_t* build_data_map(const uint8_t *data);
-    void reduce_hash_map();
+    void reduce_hash_map(size_t threshold = DICT_SIZE);
     std::vector<uint8_t>* get_deduped_data(const uint8_t *data)const;
     std::pair<std::vector<uint8_t>*, const uint8_t*> 
         decode_data(const uint8_t *data)const;

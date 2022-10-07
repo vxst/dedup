@@ -68,6 +68,8 @@ void builder::scan_block(const uint8_t *data)
 {
     const size_t &len = BLOCK_SIZE;
     uint64_t hash = hash_data(data);
+    if(hash_count.find(hash) == hash_count.end())
+        return;
     if (hash_count[hash] > 1)
         data_map[hash] = vector<uint8_t>(data, data + len);
 }
@@ -175,25 +177,35 @@ pair<vector<uint8_t>*, const uint8_t*> builder::decode_data(const uint8_t* data)
     }
 }
 
-void builder::reduce_hash_map(){
-    vector<pair<uint64_t, uint64_t>> hash_count_vec;
+void builder::reduce_hash_map(size_t threshold){
+    vector<pair<uint32_t, uint64_t>> hash_count_vec;
 
     for(auto &p : hash_count)
         hash_count_vec.push_back(make_pair(p.second, p.first));
-    std::sort(hash_count_vec.begin(), hash_count_vec.end(), greater<pair<uint64_t, uint64_t>>());
+    std::sort(hash_count_vec.begin(), hash_count_vec.end(), greater<pair<uint32_t, uint32_t>>());
 
-    for(int i = DICT_SIZE; i < hash_count_vec.size(); i++)
+    for(int i = threshold; i < hash_count_vec.size(); i++)
         hash_count.erase(hash_count_vec[i].second);
 
-    assert(hash_count.size() <= DICT_SIZE);
+    assert(hash_count.size() <= threshold);
 }
 
 
 void encode(FILE* infile, FILE* outfile){
     builder b;
     uint8_t data[BLOCK_SIZE];
+    int32_t in_count=0;
+
+    setvbuf(infile, NULL, _IOFBF, 1024 * 1024);
+    setvbuf(outfile, NULL, _IOFBF, 1024 * 1024);
+
     while(fread(data, 1, BLOCK_SIZE, infile) == BLOCK_SIZE){
         b.prescan_block(data);
+        in_count++;
+        if(in_count >= DICT_SIZE * 96){
+            b.reduce_hash_map(DICT_SIZE * 32);
+            in_count = 0;
+        }
     }
     fseek(infile, 0, SEEK_SET);
     b.reduce_hash_map();
@@ -217,6 +229,8 @@ void encode(FILE* infile, FILE* outfile){
 }
 void decode(FILE* infile, FILE* outfile){
     uint8_t* header_data = new uint8_t[BLOCK_SIZE * DICT_SIZE + BLOCK_SIZE];
+    setvbuf(infile, NULL, _IOFBF, 1024 * 1024);
+    setvbuf(outfile, NULL, _IOFBF, 1024 * 1024);
     fread(header_data, 1, BLOCK_SIZE * DICT_SIZE + BLOCK_SIZE, infile);
     builder b;
     const uint8_t* pos_data = b.build_data_map(header_data);
