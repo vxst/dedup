@@ -1,7 +1,9 @@
 #include "algo.h"
 #include <cstdio>
-#include <exception>
+#include <stdexcept>
 #include <algorithm>
+#include <cstring>
+#include <cassert>
 
 #ifdef BIGRAM
 const static int Ratio = 192;
