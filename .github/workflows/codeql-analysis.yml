@@ -55,6 +55,6 @@ jobs:
         category: "/language:${{matrix.language}}"
 
     - name: Smoke Test
-    - run: |
+      run: |
         echo "Test encode/decode of sample data"
         make test
