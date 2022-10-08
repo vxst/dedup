@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 #include <cstdint>
+#include <cstdio>
 
 // assume 512 bytes aligned(like tar/disk), deduped data is 32 bytes + 8 bytes
 // there can be 256k of deduped items
